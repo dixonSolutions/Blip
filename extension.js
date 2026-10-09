@@ -13,6 +13,7 @@ const COLORS = ['#111111ff', '#e53935ff', '#fb8c00ff', '#fdd835ff', '#43a047ff',
 export default class BlipExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
+        this._cursorTracker = global.backend.get_cursor_tracker();
         this._blips = [];
         this._signalIds = [];
         this._loadBlips();
@@ -42,8 +43,10 @@ export default class BlipExtension extends Extension {
         for (const id of this._signalIds)
             this._settings.disconnect(id);
         this._signalIds = [];
-        for (const blip of this._blips)
+        for (const blip of this._blips) {
+            this._showPointer(blip);
             this._destroyBlip(blip);
+        }
         this._blips = [];
         this._indicator?.destroy();
         this._indicator = null;
@@ -164,12 +167,14 @@ export default class BlipExtension extends Extension {
             style_class: 'blip-overlay'});
         const blip = {data, actor, clickCount: 0, clickTimer: 0, config: false, drag: null};
         actor.connect('enter-event', () => {
+            blip.hovered = true;
             if (!blip.config)
-                global.display.set_cursor(Meta.Cursor.BLANK);
+                this._hidePointer(blip);
             return Clutter.EVENT_PROPAGATE;
         });
         actor.connect('leave-event', () => {
-            global.display.set_cursor(Meta.Cursor.DEFAULT);
+            blip.hovered = false;
+            this._showPointer(blip);
             return Clutter.EVENT_PROPAGATE;
         });
         actor.connect('button-press-event', (_actor, event) => this._pointerDown(blip, event));
@@ -192,6 +197,7 @@ export default class BlipExtension extends Extension {
     }
 
     _destroyBlip(blip) {
+        this._showPointer(blip);
         if (blip.clickTimer)
             GLib.Source.remove(blip.clickTimer);
         Main.layoutManager.removeChrome(blip.actor);
@@ -220,11 +226,6 @@ export default class BlipExtension extends Extension {
             return Clutter.EVENT_STOP;
         const [x, y] = event.get_coords();
         if (!blip.drag) {
-            const [actorX, actorY] = blip.actor.get_transformed_position();
-            const localX = x - actorX, localY = y - actorY;
-            const resize = (localX < 18 || localX > blip.data.width - 18) &&
-                (localY < 18 || localY > blip.data.height - 18);
-            global.display.set_cursor(resize ? Meta.Cursor.SE_RESIZE : Meta.Cursor.MOVE);
             return Clutter.EVENT_STOP;
         }
         const dx = x - blip.drag.x, dy = y - blip.drag.y;
@@ -271,8 +272,10 @@ export default class BlipExtension extends Extension {
 
     _click(blip) {
         blip.clickCount++;
-        if (blip.clickTimer)
+        if (blip.clickTimer) {
             GLib.Source.remove(blip.clickTimer);
+            blip.clickTimer = 0;
+        }
         const count = blip.clickCount;
         if (count >= this._settings.get_int('configure-clicks')) {
             blip.clickCount = 0;
@@ -295,23 +298,39 @@ export default class BlipExtension extends Extension {
             return;
         blip.config = true;
         blip.beforeConfig = {...blip.data};
+        this._showPointer(blip);
         blip.actor.grab_key_focus();
         this._styleBlip(blip);
-        global.display.set_cursor(Meta.Cursor.DEFAULT);
     }
 
     _commitConfig(blip) {
         blip.config = false;
         this._styleBlip(blip);
         this._save();
-        global.display.set_cursor(Meta.Cursor.BLANK);
+        if (blip.hovered)
+            this._hidePointer(blip);
     }
 
     _cancelConfig(blip) {
         blip.data = blip.beforeConfig;
         blip.config = false;
         this._styleBlip(blip);
-        global.display.set_cursor(Meta.Cursor.BLANK);
+        if (blip.hovered)
+            this._hidePointer(blip);
+    }
+
+    _hidePointer(blip) {
+        if (blip.pointerHidden)
+            return;
+        this._cursorTracker.inhibit_cursor_visibility();
+        blip.pointerHidden = true;
+    }
+
+    _showPointer(blip) {
+        if (!blip.pointerHidden)
+            return;
+        this._cursorTracker.uninhibit_cursor_visibility();
+        blip.pointerHidden = false;
     }
 
     _removeBlip(blip) {
