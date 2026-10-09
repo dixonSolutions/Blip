@@ -27,6 +27,11 @@ export default class BlipExtension extends Extension {
         this._registerKeybindings();
         this._signalIds.push(this._settings.connect('changed::blips', () => this._loadBlips()));
         this._signalIds.push(this._settings.connect('changed::tray-style', () => this._updateIndicator()));
+        this._signalIds.push(this._settings.connect('changed::corner-radius', () => {
+            for (const blip of this._blips)
+                this._styleBlip(blip);
+        }));
+        this._signalIds.push(this._settings.connect('changed::default-mode', () => this._syncMenu()));
         this._signalIds.push(this._settings.connect('changed::default-color', () => {
             const latest = this._blips.at(-1);
             if (latest?.data.mode === 'color') {
@@ -205,6 +210,8 @@ export default class BlipExtension extends Extension {
     }
 
     _pointerDown(blip, event) {
+        if (event.get_button() !== 1)
+            return Clutter.EVENT_STOP;
         if (!blip.config)
             return Clutter.EVENT_STOP;
         const [x, y] = event.get_coords();
@@ -252,9 +259,9 @@ export default class BlipExtension extends Extension {
         return Clutter.EVENT_STOP;
     }
 
-    _pointerUp(blip, _event) {
+    _pointerUp(blip, event) {
         blip.drag = null;
-        if (!blip.config)
+        if (!blip.config && event.get_button() === 1)
             this._click(blip);
         return Clutter.EVENT_STOP;
     }
@@ -296,6 +303,11 @@ export default class BlipExtension extends Extension {
     _configureBlip(blip) {
         if (!blip || blip.config)
             return;
+        if (blip.clickTimer) {
+            GLib.Source.remove(blip.clickTimer);
+            blip.clickTimer = 0;
+        }
+        blip.clickCount = 0;
         blip.config = true;
         blip.beforeConfig = {...blip.data};
         this._showPointer(blip);
@@ -354,6 +366,7 @@ export default class BlipExtension extends Extension {
             if (key === 'mode') this._settings.set_string('default-mode', value);
             else if (key === 'tint') this._settings.set_double('default-tint', value);
             else if (key === 'color') this._settings.set_string('default-color', value);
+            this._syncMenu();
             return;
         }
         latest.data[key] = value;
