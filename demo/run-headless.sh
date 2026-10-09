@@ -49,12 +49,6 @@ cleanup() {
     fi
     [[ -n "$WINDOW_PID" ]] && kill "$WINDOW_PID" >/dev/null 2>&1 || true
     [[ -n "$SHELL_PID" ]] && kill "$SHELL_PID" >/dev/null 2>&1 || true
-    if (( result != 0 )); then
-        write_status failed "See $WORK_DIR/shell.log for GNOME Shell output."
-        printf '%s\n' "failed: $OUTPUT_FILE" > "$DONE_FILE"
-        printf 'Blip demo failed. Status: %s\n' "$STATUS_FILE" >&2
-        printf 'Session log: %s/session.log\n' "$WORK_DIR" >&2
-    fi
     if [[ "${BLIP_DEMO_INSIDE:-0}" == 1 && $result == 0 ]]; then
         rm -rf -- "$WORK_DIR"
     fi
@@ -133,7 +127,7 @@ gsettings set org.gnome.shell.extensions.blip remove-clicks 2
 gsettings set org.gnome.shell.extensions.blip configure-clicks 3
 
 write_status running "Launching 1600x900 headless GNOME Shell and recording the real extension UI."
-gnome-shell --wayland --display-server --headless --no-x11 \
+gnome-shell --wayland --headless --no-x11 \
     --virtual-monitor=1600x900 --wayland-display="$WAYLAND_NAME" \
     --debug-control > "$WORK_DIR/shell.log" 2>&1 &
 SHELL_PID=$!
