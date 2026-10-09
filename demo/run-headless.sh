@@ -17,6 +17,8 @@ else
 fi
 SHELL_PID=""
 WINDOW_PID=""
+PIPEWIRE_PID=""
+WIREPLUMBER_PID=""
 RECORDING_STARTED=0
 
 mkdir -p -- "$OUTPUT_DIR"
@@ -49,12 +51,14 @@ cleanup() {
     fi
     [[ -n "$WINDOW_PID" ]] && kill "$WINDOW_PID" >/dev/null 2>&1 || true
     [[ -n "$SHELL_PID" ]] && kill "$SHELL_PID" >/dev/null 2>&1 || true
+    [[ -n "$WIREPLUMBER_PID" ]] && kill "$WIREPLUMBER_PID" >/dev/null 2>&1 || true
+    [[ -n "$PIPEWIRE_PID" ]] && kill "$PIPEWIRE_PID" >/dev/null 2>&1 || true
     if [[ "${BLIP_DEMO_INSIDE:-0}" == 1 && $result == 0 ]]; then
         rm -rf -- "$WORK_DIR"
     fi
 }
 
-for tool in gnome-shell gsettings glib-compile-schemas dbus-run-session gdbus gjs ffmpeg ffprobe; do
+for tool in gnome-shell gsettings glib-compile-schemas dbus-run-session gdbus gjs ffmpeg ffprobe pipewire wireplumber pw-cli; do
     command -v "$tool" >/dev/null 2>&1 || { write_status failed "Missing required command: $tool"; exit 2; }
 done
 
@@ -99,6 +103,9 @@ export XDG_DATA_DIRS="$XDG_DATA_HOME:/usr/local/share:/usr/share${XDG_DATA_DIRS:
 export XDG_CURRENT_DESKTOP=GNOME
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=gnome
+export PIPEWIRE_RUNTIME_DIR="$XDG_RUNTIME_DIR"
+export GTK_A11Y=none
+export NO_AT_BRIDGE=1
 mkdir -p "$XDG_DATA_HOME/gnome-shell/extensions" "$XDG_DATA_HOME/glib-2.0/schemas" "$XDG_CONFIG_HOME/dconf" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 
 EXT_DIR="$XDG_DATA_HOME/gnome-shell/extensions/blip@dixonSolutions"
@@ -127,6 +134,29 @@ gsettings set org.gnome.shell.extensions.blip remove-clicks 2
 gsettings set org.gnome.shell.extensions.blip configure-clicks 3
 
 write_status running "Launching 1600x900 headless GNOME Shell and recording the real extension UI."
+pipewire > "$WORK_DIR/pipewire.log" 2>&1 &
+PIPEWIRE_PID=$!
+pipewire_ready=0
+for _ in $(seq 1 40); do
+    if [[ -S "$PIPEWIRE_RUNTIME_DIR/pipewire-0" ]] && pw-cli info 0 >/dev/null 2>&1; then
+        pipewire_ready=1
+        break
+    fi
+    if ! kill -0 "$PIPEWIRE_PID" >/dev/null 2>&1; then
+        cat "$WORK_DIR/pipewire.log" >&2
+        exit 1
+    fi
+    sleep 0.25
+done
+(( pipewire_ready )) || { cat "$WORK_DIR/pipewire.log" >&2; echo "PipeWire did not become ready." >&2; exit 1; }
+wireplumber > "$WORK_DIR/wireplumber.log" 2>&1 &
+WIREPLUMBER_PID=$!
+sleep 1
+if ! kill -0 "$WIREPLUMBER_PID" >/dev/null 2>&1; then
+    cat "$WORK_DIR/wireplumber.log" >&2
+    exit 1
+fi
+
 gnome-shell --wayland --headless --no-x11 \
     --virtual-monitor=1600x900 --wayland-display="$WAYLAND_NAME" \
     --debug-control > "$WORK_DIR/shell.log" 2>&1 &
@@ -152,11 +182,12 @@ WAYLAND_DISPLAY="$WAYLAND_NAME" GDK_BACKEND=wayland \
 WINDOW_PID=$!
 sleep 2
 
-WEBM_FILE="$WORK_DIR/blip-demo.webm"
+WEBM_BASE="$WORK_DIR/blip-demo"
+WEBM_FILE="$WEBM_BASE.webm"
 record_result="$(gdbus call --session --dest org.gnome.Shell.Screencast \
     --object-path /org/gnome/Shell/Screencast \
     --method org.gnome.Shell.Screencast.Screencast \
-    "$WEBM_FILE" "{'framerate': <int32 24>, 'draw-cursor': <false>}")"
+    "$WEBM_BASE" "{'framerate': <int32 24>, 'draw-cursor': <false>}")"
 [[ "$record_result" == *"(true,"* ]] || { echo "Could not start screen recording: $record_result" >&2; exit 1; }
 RECORDING_STARTED=1
 write_status recording "Headless GNOME capture is running; this script will finish automatically."
