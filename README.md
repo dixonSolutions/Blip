@@ -6,7 +6,7 @@ Blip puts a dark, configurable screen overlay wherever you need a part of the de
 
 - Press **Super+Alt+B** to add a centered glass blip. Press it again to add another.
 - Double-click a blip to remove it. Triple-click to enter configuration mode.
-- In configuration mode, drag inside the blip to move it and drag the lower or right edge to resize it. Press **Enter** to save or **Escape** to cancel.
+- In configuration mode, drag inside the blip to move it and drag a corner to resize it. Press **Enter** to save or **Escape** to cancel.
 - Use **Super+Alt+Backspace** to remove the blip under the pointer, or **Super+Alt+Enter** to configure it.
 - Open the black square in the top bar to add or remove blips and change the latest blip's mode, color, or tint.
 - Open **Advanced settings…** to change shortcuts, click counts, default size and position, tray icon behavior, color, and rounded corners.
@@ -16,15 +16,9 @@ The initial shortcut is configurable in Extension Settings. Blips are saved acro
 ## Install
 
 ```sh
-gnome-extensions install blip@dixonSolutions.shell-extension.zip
+./pack.sh
+gnome-extensions install dist/blip@dixonSolutions.shell-extension.zip
 gnome-extensions enable blip@dixonSolutions
-```
-
-To build the installable archive from this checkout:
-
-```sh
-glib-compile-schemas schemas
-gnome-extensions pack --force --out-file blip@dixonSolutions.shell-extension.zip
 ```
 
 GNOME Shell 50 is currently supported. On Wayland, use GNOME Tweaks or the Extensions app to manage the extension after installation.
