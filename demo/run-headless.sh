@@ -58,7 +58,7 @@ cleanup() {
     fi
 }
 
-for tool in gnome-shell gsettings glib-compile-schemas dbus-run-session gdbus gjs ffmpeg ffprobe pipewire wireplumber pw-cli; do
+for tool in gnome-shell gsettings glib-compile-schemas dbus-run-session gdbus gjs ffmpeg ffprobe pipewire wireplumber pw-cli wpctl; do
     command -v "$tool" >/dev/null 2>&1 || { write_status failed "Missing required command: $tool"; exit 2; }
 done
 
@@ -151,11 +151,19 @@ done
 (( pipewire_ready )) || { cat "$WORK_DIR/pipewire.log" >&2; echo "PipeWire did not become ready." >&2; exit 1; }
 wireplumber > "$WORK_DIR/wireplumber.log" 2>&1 &
 WIREPLUMBER_PID=$!
-sleep 1
-if ! kill -0 "$WIREPLUMBER_PID" >/dev/null 2>&1; then
-    cat "$WORK_DIR/wireplumber.log" >&2
-    exit 1
-fi
+wireplumber_ready=0
+for _ in $(seq 1 40); do
+    if wpctl status >/dev/null 2>&1; then
+        wireplumber_ready=1
+        break
+    fi
+    if ! kill -0 "$WIREPLUMBER_PID" >/dev/null 2>&1; then
+        cat "$WORK_DIR/wireplumber.log" >&2
+        exit 1
+    fi
+    sleep 0.25
+done
+(( wireplumber_ready )) || { cat "$WORK_DIR/wireplumber.log" >&2; echo "WirePlumber did not become ready." >&2; exit 1; }
 
 gnome-shell --wayland --headless --no-x11 \
     --virtual-monitor=1600x900 --wayland-display="$WAYLAND_NAME" \
