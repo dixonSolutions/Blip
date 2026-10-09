@@ -1,4 +1,3 @@
-*.zip
-schemas/gschemas.compiled
-.cache/
-dist/
+/artifacts/headless/
+/dist/
+/schemas/gschemas.compiled

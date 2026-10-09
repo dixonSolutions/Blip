@@ -27,6 +27,14 @@ GNOME Shell 50 is currently supported. On Wayland, use GNOME Tweaks or the Exten
 
 See [demo.mp4](demo.mp4) for an illustrated UI walkthrough of adding, styling, moving, resizing, and removing a blip. Its GNOME desktop scenes are vector mockups, not a screen recording.
 
+To capture the extension running in a headless GNOME Shell session, run:
+
+```sh
+./demo/run-headless.sh
+```
+
+The script records the real overlay in an isolated 1600×900 Wayland session, saves an MP4 and poster image under `artifacts/headless/`, and writes `status.txt` plus `complete.txt` there so another process can poll for completion. If `notify-send` can reach your desktop session, it also sends a completion notification. Set `BLIP_DEMO_OUTPUT_DIR` or `BLIP_DEMO_OUTPUT_FILE` to choose a different destination. This capture demonstrates the visuals and changing blip settings; it does not simulate pointer clicks.
+
 ## License
 
 Blip is available under the GNU General Public License, version 3 or later. See [COPYING](COPYING).
