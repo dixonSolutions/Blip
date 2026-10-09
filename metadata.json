@@ -1,0 +1,9 @@
+{
+  "uuid": "blip@dixonSolutions",
+  "name": "Blip",
+  "description": "Mark parts of your screen as untouchable overlays.",
+  "version": 1,
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.blip",
+  "url": "https://github.com/dixonSolutions/Blip"
+}

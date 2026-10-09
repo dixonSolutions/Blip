@@ -1,0 +1,19 @@
+<schemalist>
+  <schema id="org.gnome.shell.extensions.blip" path="/org/gnome/shell/extensions/blip/">
+    <key name="blips" type="s"><default>'[]'</default><summary>Saved screen blips</summary></key>
+    <key name="add-shortcut" type="as"><default>['&lt;Super&gt;&lt;Alt&gt;b']</default><summary>Add a blip</summary></key>
+    <key name="remove-shortcut" type="as"><default>['&lt;Super&gt;&lt;Alt&gt;BackSpace']</default><summary>Remove a blip under the pointer</summary></key>
+    <key name="configure-shortcut" type="as"><default>['&lt;Super&gt;&lt;Alt&gt;Return']</default><summary>Configure a blip under the pointer</summary></key>
+    <key name="remove-clicks" type="i"><default>2</default><range min="1" max="8"/><summary>Clicks to remove a blip</summary></key>
+    <key name="configure-clicks" type="i"><default>3</default><range min="1" max="8"/><summary>Clicks to configure a blip</summary></key>
+    <key name="click-timeout" type="i"><default>450</default><range min="200" max="1500"/><summary>Click sequence timeout in milliseconds</summary></key>
+    <key name="default-mode" type="s"><default>'glass'</default><summary>Mode for new blips</summary></key>
+    <key name="default-color" type="s"><default>'#17191dcc'</default><summary>Default color and opacity</summary></key>
+    <key name="default-tint" type="d"><default>0.78</default><range min="0.05" max="1.0"/><summary>Default glass tint</summary></key>
+    <key name="corner-radius" type="i"><default>0</default><range min="0" max="80"/><summary>Corner radius in pixels</summary></key>
+    <key name="default-position" type="s"><default>'center'</default><summary>Placement for new blips</summary></key>
+    <key name="tray-style" type="s"><default>'latest'</default><summary>Tray icon color source</summary></key>
+    <key name="default-width" type="i"><default>640</default><range min="80" max="10000"/><summary>Default blip width</summary></key>
+    <key name="default-height" type="i"><default>360</default><range min="80" max="10000"/><summary>Default blip height</summary></key>
+  </schema>
+</schemalist>
